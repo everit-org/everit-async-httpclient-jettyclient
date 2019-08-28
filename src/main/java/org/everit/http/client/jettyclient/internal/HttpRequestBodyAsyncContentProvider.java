@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2011 Everit Kft. (http://www.everit.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.everit.http.client.jettyclient.internal;
 
 import java.io.Closeable;
@@ -11,40 +26,49 @@ import java.util.function.Consumer;
 
 import org.eclipse.jetty.client.AsyncContentProvider;
 import org.eclipse.jetty.client.api.ContentProvider.Typed;
+import org.everit.http.client.HttpRequest;
 import org.everit.http.client.async.AsyncCallback;
 
-public class HttpBodyAsyncContentProvider implements AsyncContentProvider, Typed, Closeable {
+/**
+ * Helper class to convert the body AsyncContentProvider of the {@link HttpRequest} of Everit HTTP
+ * Client to Jetty Client AsyncContentProvider.
+ */
+public class HttpRequestBodyAsyncContentProvider implements AsyncContentProvider, Typed, Closeable {
 
+  /**
+   * Helper class to convert Everit HTTP Client AsyncContentProvider to Jetty Client
+   * AsyncContentProvider. Jetty uses an Iterator inside.
+   */
   private class HttpBodyAsyncContentProviderIterator implements Iterator<ByteBuffer>, Closeable {
 
     @Override
     public void close() throws IOException {
-      HttpBodyAsyncContentProvider.this.close();
+      HttpRequestBodyAsyncContentProvider.this.close();
     }
 
     @Override
     public boolean hasNext() {
-      synchronized (HttpBodyAsyncContentProvider.this.mutex) {
-        return !HttpBodyAsyncContentProvider.this.completed
-            || HttpBodyAsyncContentProvider.this.lastChunk != null;
+      synchronized (HttpRequestBodyAsyncContentProvider.this.mutex) {
+        return !HttpRequestBodyAsyncContentProvider.this.completed
+            || HttpRequestBodyAsyncContentProvider.this.lastChunk != null;
       }
     }
 
     @Override
     public ByteBuffer next() {
-      synchronized (HttpBodyAsyncContentProvider.this.mutex) {
+      synchronized (HttpRequestBodyAsyncContentProvider.this.mutex) {
         if (!hasNext()) {
           return null;
         }
 
-        ByteBuffer item = HttpBodyAsyncContentProvider.this.lastChunk;
-        HttpBodyAsyncContentProvider.this.lastChunk = null;
+        ByteBuffer item = HttpRequestBodyAsyncContentProvider.this.lastChunk;
+        HttpRequestBodyAsyncContentProvider.this.lastChunk = null;
 
-        AsyncCallback callback = HttpBodyAsyncContentProvider.this.lastAsyncCallback;
-        HttpBodyAsyncContentProvider.this.lastAsyncCallback = null;
+        AsyncCallback callback = HttpRequestBodyAsyncContentProvider.this.lastAsyncCallback;
+        HttpRequestBodyAsyncContentProvider.this.lastAsyncCallback = null;
 
         if (callback != null) {
-          HttpBodyAsyncContentProvider.this.executor.execute(callback::processed);
+          HttpRequestBodyAsyncContentProvider.this.executor.execute(callback::processed);
         }
         return item;
       }
@@ -72,7 +96,18 @@ public class HttpBodyAsyncContentProvider implements AsyncContentProvider, Typed
 
   private Consumer<Throwable> requestAbortAction;
 
-  public HttpBodyAsyncContentProvider(org.everit.http.client.async.AsyncContentProvider body,
+  /**
+   * Constructor.
+   *
+   * @param body
+   *          The body of the {@link HttpRequest}.
+   * @param requestAbortAction
+   *          The action that should be executed in case the request should be aborted.
+   * @param executor
+   *          The provider uses the executor to open new thread to notify the Everit
+   *          {@link AsyncContentProvider} that new data can be sent.
+   */
+  public HttpRequestBodyAsyncContentProvider(org.everit.http.client.async.AsyncContentProvider body,
       Consumer<Throwable> requestAbortAction, Executor executor) {
 
     this.body = body;

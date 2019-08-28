@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2011 Everit Kft. (http://www.everit.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.everit.http.client.jettyclient.internal;
 
 import java.nio.ByteBuffer;
@@ -24,14 +39,22 @@ import org.everit.http.client.async.AsyncContentProvider;
 
 import io.reactivex.SingleEmitter;
 
-public class JettyToHttpResponseListener
+/**
+ * Listener of Jetty response that passes the data to the {@link AsyncContentProvider} of the Everit
+ * HTTP response body.
+ */
+public class JettyResponseListenerToEveritAsyncProvider
     implements HeadersListener, AsyncContentListener, CompleteListener, FailureListener,
     SuccessListener {
 
-  public static class JettyCallbackToAsyncCallback implements AsyncCallback {
+  /**
+   * Helper class that implements the {@link AsyncCallback} of Everit HTTP Client and notifies the
+   * original Jetty response about the callback events.
+   */
+  public static class JettyCallbackToEveritAsyncCallback implements AsyncCallback {
     Callback callback;
 
-    JettyCallbackToAsyncCallback(Callback callback) {
+    JettyCallbackToEveritAsyncCallback(Callback callback) {
       this.callback = callback;
     }
 
@@ -47,6 +70,10 @@ public class JettyToHttpResponseListener
 
   }
 
+  /**
+   * The Jetty connected implementation of Everit {@link AsyncContentProvider} that can be served by
+   * the Everit HTTP response.
+   */
   private class JettyToHttpResponseAsyncContentProvider implements AsyncContentProvider {
 
     Callback callbackForUnprocessedContent = null;
@@ -69,7 +96,15 @@ public class JettyToHttpResponseListener
 
     ByteBuffer unprocessedContent = null;
 
-    public JettyToHttpResponseAsyncContentProvider(Optional<Long> contentLength,
+    /**
+     * Constructor.
+     *
+     * @param contentLength
+     *          The length of the response if known.
+     * @param contentType
+     *          The content type of the response if known.
+     */
+    JettyToHttpResponseAsyncContentProvider(Optional<Long> contentLength,
         Optional<MediaType> contentType) {
 
       this.contentLength = contentLength;
@@ -83,7 +118,8 @@ public class JettyToHttpResponseListener
         return;
       }
 
-      JettyToHttpResponseListener.this.response.abort(new RuntimeException("Abort response"));
+      JettyResponseListenerToEveritAsyncProvider.this.response
+          .abort(new RuntimeException("Abort response"));
     }
 
     @Override
@@ -98,7 +134,7 @@ public class JettyToHttpResponseListener
 
     @Override
     public Optional<Throwable> getFailure() {
-      synchronized (JettyToHttpResponseListener.this.mutex) {
+      synchronized (JettyResponseListenerToEveritAsyncProvider.this.mutex) {
         return Optional.ofNullable(this.error);
       }
     }
@@ -115,7 +151,7 @@ public class JettyToHttpResponseListener
       ByteBuffer tmpUnProcessedContent;
       Callback tmpCallback;
 
-      synchronized (JettyToHttpResponseListener.this.mutex) {
+      synchronized (JettyResponseListenerToEveritAsyncProvider.this.mutex) {
         this.contentListener = listener;
         tmpUnProcessedContent = this.unprocessedContent;
         this.unprocessedContent = null;
@@ -124,7 +160,7 @@ public class JettyToHttpResponseListener
       }
       if (tmpUnProcessedContent != null) {
         listener.onContent(tmpUnProcessedContent,
-            new JettyCallbackToAsyncCallback(tmpCallback));
+            new JettyCallbackToEveritAsyncCallback(tmpCallback));
       }
       return this;
     }
@@ -132,7 +168,7 @@ public class JettyToHttpResponseListener
     @Override
     public AsyncContentProvider onError(Consumer<Throwable> action) {
       Throwable error = null;
-      synchronized (JettyToHttpResponseListener.this.mutex) {
+      synchronized (JettyResponseListenerToEveritAsyncProvider.this.mutex) {
         this.errorListener = action;
         error = this.error;
       }
@@ -145,7 +181,7 @@ public class JettyToHttpResponseListener
     @Override
     public AsyncContentProvider onSuccess(Runnable action) {
       boolean callAction;
-      synchronized (JettyToHttpResponseListener.this.mutex) {
+      synchronized (JettyResponseListenerToEveritAsyncProvider.this.mutex) {
         this.completeListener = action;
         callAction = this.completed && this.error == null;
       }
@@ -177,7 +213,7 @@ public class JettyToHttpResponseListener
 
   private final SingleEmitter<HttpResponse> singleEmitter;
 
-  public JettyToHttpResponseListener(SingleEmitter<HttpResponse> singleEmitter) {
+  public JettyResponseListenerToEveritAsyncProvider(SingleEmitter<HttpResponse> singleEmitter) {
     this.singleEmitter = singleEmitter;
   }
 
@@ -203,7 +239,7 @@ public class JettyToHttpResponseListener
 
     try {
       this.contentProvider.contentListener.onContent(content,
-          new JettyCallbackToAsyncCallback(callback));
+          new JettyCallbackToEveritAsyncCallback(callback));
     } catch (Throwable e) {
       callback.failed(e);
     }
@@ -231,8 +267,11 @@ public class JettyToHttpResponseListener
 
   @Override
   public void onHeaders(Response response) {
+
     Map<String, String> headers =
-        JettyToHttpResponseListener.convertHeaderFieldToHeaderMap(response.getHeaders());
+        JettyResponseListenerToEveritAsyncProvider
+            .convertHeaderFieldToHeaderMap(response.getHeaders());
+
     Optional<Long> contentLength = resolveContentLength(headers);
     Optional<MediaType> contentType = resolveContentType(headers);
 
