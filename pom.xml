@@ -28,15 +28,13 @@
 
   <groupId>org.everit.http</groupId>
   <artifactId>org.everit.http.client.jettyclient</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <packaging>bundle</packaging>
   <name>Everit - HTTP Client JettyClient implementation</name>
   <description>Jetty client based implementation of the asynchronous Everit HTTP Client API.</description>
 
   <properties>
     <projectpath>everit-httpclient-jettyclient</projectpath>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <scm>
@@ -95,7 +93,7 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-client</artifactId>
-      <version>9.4.19.v20190610</version>
+      <version>9.4.20.v20190813</version>
     </dependency>
     <dependency>
       <groupId>org.everit.http</groupId>
