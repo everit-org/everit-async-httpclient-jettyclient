@@ -28,7 +28,7 @@
 
   <groupId>org.everit.http</groupId>
   <artifactId>org.everit.http.client.jettyclient</artifactId>
-  <version>1.0.2</version>
+  <version>1.1.0</version>
   <packaging>bundle</packaging>
   <name>Everit - HTTP Client JettyClient implementation</name>
   <description>Jetty client based implementation of the asynchronous Everit HTTP Client API.</description>
@@ -81,7 +81,8 @@
               *
             </Import-Package>
             <Export-Package>
-              org.everit.http.client.jettyclient;version="1.0.0"
+              org.everit.http.client.jettyclient;version="1.0.0",
+              org.everit.http.client.jettyclient.exception;version="1.0.0"
             </Export-Package>
           </instructions>
         </configuration>

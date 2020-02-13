@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import org.everit.http.client.HttpClient;
 import org.everit.http.client.HttpRequest;
 import org.everit.http.client.HttpResponse;
+import org.everit.http.client.jettyclient.exception.JettyClientAbortRequestException;
 import org.everit.http.client.jettyclient.internal.HttpRequestBodyAsyncContentProvider;
 import org.everit.http.client.jettyclient.internal.JettyResponseListenerToEveritAsyncProvider;
 
@@ -133,7 +134,7 @@ public class JettyClientHttpClient implements HttpClient {
 
       emitter.setCancellable(() -> {
         if (!listener.isHeaderProcessedOrFailed()) {
-          jettyRequest.abort(new RuntimeException("Aborting request"));
+          jettyRequest.abort(new JettyClientAbortRequestException("Aborting request"));
         }
       });
 
